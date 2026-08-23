@@ -16,6 +16,12 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        agent:
+          "bg-agent text-agent-foreground shadow-sm hover:bg-agent/90 [background-image:var(--gradient-agent)]",
+        clinical: "bg-info text-navy-foreground shadow-sm hover:bg-info/90",
+        approve: "bg-ok text-navy-foreground shadow-sm hover:bg-ok/90",
+        reject: "bg-urgent text-navy-foreground shadow-sm hover:bg-urgent/90",
+
       },
       size: {
         default: "h-9 px-4 py-2",
