@@ -71,7 +71,7 @@ export function AgentsCard({
 }) {
   const [open, setOpen] = useState<AgentDef | null>(null);
   const io = open ? agentIO(open, patient) : null;
-  const run = open ? runs[open.id] : null;
+  const run: AgentRun | null = open ? (runs[open.id] ?? { status: "Pending" }) : null;
 
   return (
     <SectionCard
@@ -83,7 +83,7 @@ export function AgentsCard({
         <span className="absolute left-[19px] top-3 bottom-3 w-px bg-border" aria-hidden />
         {AGENTS.map((agent) => {
           const Icon = ICONS[agent.id];
-          const r = runs[agent.id];
+          const r: AgentRun = runs[agent.id] ?? { status: "Pending" };
           return (
             <button
               key={agent.id}
