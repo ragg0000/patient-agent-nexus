@@ -17,7 +17,7 @@ export function SectionCard({
   return (
     <section className={cn("relative pt-5", className)}>
       <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2">
-        <span className="rounded-md bg-navy px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-navy-foreground shadow-sm">
+        <span className="whitespace-nowrap rounded-md bg-navy px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-navy-foreground shadow-sm">
           {index}. {title}
         </span>
       </div>
