@@ -12,9 +12,9 @@ export type ApiErrorKind = "network" | "timeout" | "not-found" | "server" | "inv
 
 export class ApiError extends Error {
   kind: ApiErrorKind;
-  status?: number;
+  status?: number | undefined;
 
-  constructor(kind: ApiErrorKind, message: string, status?: number) {
+  constructor(kind: ApiErrorKind, message: string, status?: number | undefined) {
     super(message);
     this.name = "ApiError";
     this.kind = kind;
@@ -25,14 +25,14 @@ export class ApiError extends Error {
 export const DEFAULT_API_BASE_URL = "http://localhost:8000/api";
 
 export function apiBaseUrl(): string {
-  return (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? DEFAULT_API_BASE_URL;
+  return import.meta.env["VITE_API_BASE_URL"] ?? DEFAULT_API_BASE_URL;
 }
 
 type RequestOptions = {
-  method?: string;
+  method?: string | undefined;
   json?: unknown;
-  form?: FormData;
-  timeoutMs?: number;
+  form?: FormData | undefined;
+  timeoutMs?: number | undefined;
 };
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -40,13 +40,15 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const init: RequestInit = { method: options.method ?? "GET", signal: controller.signal };
+  if (options.json !== undefined) {
+    init.headers = { "Content-Type": "application/json" };
+    init.body = JSON.stringify(options.json);
+  } else if (options.form) {
+    init.body = options.form;
+  }
   try {
-    const res = await fetch(`${apiBaseUrl()}${path}`, {
-      method: options.method ?? "GET",
-      headers: options.json !== undefined ? { "Content-Type": "application/json" } : undefined,
-      body: options.json !== undefined ? JSON.stringify(options.json) : options.form,
-      signal: controller.signal,
-    });
+    const res = await fetch(`${apiBaseUrl()}${path}`, init);
 
     if (res.status === 404) {
       throw new ApiError("not-found", "That item was not found on the backend.", 404);
@@ -77,14 +79,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
-  get: <T>(path: string, timeoutMs?: number) => request<T>(path, { timeoutMs }),
-  post: <T>(path: string, json?: unknown, timeoutMs?: number) =>
+  get: <T>(path: string, timeoutMs?: number | undefined) => request<T>(path, { timeoutMs }),
+  post: <T>(path: string, json?: unknown, timeoutMs?: number | undefined) =>
     request<T>(path, { method: "POST", json, timeoutMs }),
-  postForm: <T>(path: string, form: FormData, timeoutMs?: number) =>
+  postForm: <T>(path: string, form: FormData, timeoutMs?: number | undefined) =>
     request<T>(path, { method: "POST", form, timeoutMs }),
 };
 
-export type HealthStatus = { ok: boolean; detail?: string };
+export type HealthStatus = { ok: boolean; detail?: string | undefined };
 
 export async function checkHealth(): Promise<HealthStatus> {
   try {
