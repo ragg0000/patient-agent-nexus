@@ -19,20 +19,20 @@ export const RANGES: { value: TimeRange; label: string }[] = [
 export type BackendPatient = {
   patientId: string;
   name: string;
-  age?: number;
-  patientType?: string;
-  department?: string;
-  visitReason?: string;
-  currentVisit?: string;
+  age?: number | undefined;
+  patientType?: string | undefined;
+  department?: string | undefined;
+  visitReason?: string | undefined;
+  currentVisit?: string | undefined;
   medicalHistory: string[];
   medications: string[];
   allergies: string[];
-  historicalEncounters?: number;
+  historicalEncounters?: number | undefined;
   expectedAgentBehavior?: unknown;
-  vitals?: { label: string; value: string; abnormal?: boolean }[];
-  labs?: { label: string; value: string; flag?: string }[];
-  missingInformation?: string[];
-  dataOrigin?: string;
+  vitals?: { label: string; value: string; abnormal?: boolean | undefined }[] | undefined;
+  labs?: { label: string; value: string; flag?: string | undefined }[] | undefined;
+  missingInformation?: string[] | undefined;
+  dataOrigin?: string | undefined;
 };
 
 export type VisitSeverity = "routine" | "improved" | "warning" | "urgent" | "treatment-change";
@@ -40,21 +40,21 @@ export type VisitSeverity = "routine" | "improved" | "warning" | "urgent" | "tre
 export type TimelineVisit = {
   encounterId: string;
   date: string;
-  department?: string;
-  encounterType?: string;
-  visitReason?: string;
-  severity?: VisitSeverity;
-  vitals?: Record<string, string>;
-  labs?: Record<string, string>;
-  carePlan?: string;
-  outcome?: string;
-  dataOrigin?: string;
+  department?: string | undefined;
+  encounterType?: string | undefined;
+  visitReason?: string | undefined;
+  severity?: VisitSeverity | undefined;
+  vitals?: Record<string, string> | undefined;
+  labs?: Record<string, string> | undefined;
+  carePlan?: string | undefined;
+  outcome?: string | undefined;
+  dataOrigin?: string | undefined;
 };
 
 export type TrendPoint = { date: string; value: number };
 
 export type Analytics = {
-  trends: { key: string; label: string; unit?: string; points: TrendPoint[] }[];
+  trends: { key: string; label: string; unit?: string | undefined; points: TrendPoint[] }[];
 };
 
 export type ClinicalContext = {
@@ -62,56 +62,66 @@ export type ClinicalContext = {
   activeConditions: string[];
   medications: string[];
   allergies: string[];
-  historicalEncounterCount?: number;
+  historicalEncounterCount?: number | undefined;
   sourceReferences: string[];
   missingInformation: string[];
-  dataOrigin?: string;
+  dataOrigin?: string | undefined;
 };
 
 export type AgentResult = {
   id: string;
   name: string;
   status: string;
-  startedAt?: string;
-  completedAt?: string;
-  durationMs?: number;
+  startedAt?: string | undefined;
+  completedAt?: string | undefined;
+  durationMs?: number | undefined;
   messages: string[];
-  input?: string;
-  output?: string;
-  handoffTo?: string;
-  requiresProviderReview?: boolean;
+  input?: string | undefined;
+  output?: string | undefined;
+  handoffTo?: string | undefined;
+  requiresProviderReview?: boolean | undefined;
 };
 
 export type PreConsultation = {
-  workflowRunId?: string;
-  range?: TimeRange;
-  executedAt?: string;
+  workflowRunId?: string | undefined;
+  range?: TimeRange | undefined;
+  executedAt?: string | undefined;
   results: AgentResult[];
   doctorQuestions: string[];
-  workflowStatus?: string;
+  workflowStatus?: string | undefined;
 };
 
-export type TranscriptSegment = { start?: string; end?: string; speaker?: string; text: string };
+export type TranscriptSegment = {
+  start?: string | undefined;
+  end?: string | undefined;
+  speaker?: string | undefined;
+  text: string;
+};
 
 export type TranscriptResult = {
   consultationId: string;
   text: string;
   segments: TranscriptSegment[];
-  durationSeconds?: number;
-  language?: string;
-  languageProbability?: number;
-  model?: string;
+  durationSeconds?: number | undefined;
+  language?: string | undefined;
+  languageProbability?: number | undefined;
+  model?: string | undefined;
 };
 
 export type VisitComparison = {
-  comparisons: { field: string; previous?: string; current?: string; change?: string }[];
+  comparisons: {
+    field: string;
+    previous?: string | undefined;
+    current?: string | undefined;
+    change?: string | undefined;
+  }[];
 };
 
 export type SummaryReviewResponse = {
-  workflowStatus?: string;
-  summary?: string;
-  consultationId?: string;
-  version?: number;
+  workflowStatus?: string | undefined;
+  summary?: string | undefined;
+  consultationId?: string | undefined;
+  version?: number | undefined;
   raw: unknown;
 };
 
@@ -161,11 +171,11 @@ export function agentDisplayName(id: string): string {
 }
 
 function prettify(id: string): string {
-  return id
+  const pretty = id
     .replace(/[_-]+/g, " ")
     .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .concat(/agent/i.test(id) ? "" : " Agent");
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return /agent/i.test(id) ? pretty : `${pretty} Agent`;
 }
 
 const SEVERITIES: VisitSeverity[] = ["routine", "improved", "warning", "urgent", "treatment-change"];
@@ -219,10 +229,11 @@ export function normalizePatient(raw: unknown): BackendPatient {
     }),
     labs: (field<unknown[]>(obj, "labs", "labResults", "lab_results") ?? []).map((v) => {
       const vo = asRecord(v);
+      const flag = field<string>(vo, "flag", "status");
       return {
         label: String(field(vo, "label", "name", "test") ?? "Lab"),
         value: String(field(vo, "value", "result", "display") ?? "—"),
-        flag: field<string>(vo, "flag", "status"),
+        ...(flag !== undefined ? { flag } : {}),
       };
     }),
     missingInformation: strList(field(obj, "missingInformation", "missing_information", "gaps")),
@@ -249,7 +260,7 @@ export function normalizeVisits(raw: unknown): TimelineVisit[] {
   });
 }
 
-const TREND_LABELS: { match: RegExp; key: string; label: string; unit?: string }[] = [
+const TREND_LABELS: { match: RegExp; key: string; label: string; unit?: string | undefined }[] = [
   { match: /systolic|bp.*sys/i, key: "bp-systolic", label: "Blood pressure — systolic", unit: "mmHg" },
   { match: /diastolic|bp.*dia/i, key: "bp-diastolic", label: "Blood pressure — diastolic", unit: "mmHg" },
   { match: /^bp$|blood pressure/i, key: "bp", label: "Blood pressure", unit: "mmHg" },
@@ -280,10 +291,11 @@ export function normalizeAnalytics(raw: unknown): Analytics {
       })
       .filter((p): p is TrendPoint => p !== null);
     if (points.length) {
+      const unit = field<string>(obj, "unit") ?? match?.unit;
       trends.push({
         key: match?.key ?? label.toLowerCase().replace(/\s+/g, "-"),
         label: match?.label ?? label,
-        unit: field<string>(obj, "unit") ?? match?.unit,
+        ...(unit !== undefined ? { unit } : {}),
         points,
       });
     }
@@ -298,7 +310,13 @@ export function normalizeContext(raw: unknown): ClinicalContext {
     activeConditions: strList(field(obj, "activeConditions", "active_conditions", "conditions", "problems")),
     medications: strList(field(obj, "medications", "currentMedications", "current_medications")),
     allergies: strList(field(obj, "allergies", "allergyList", "allergy_list")),
-    historicalEncounterCount: field<number>(obj, "historicalEncounterCount", "historical_encounter_count", "historicalEncounters", "historical_encounters"),
+    historicalEncounterCount: field<number>(
+      obj,
+      "historicalEncounterCount",
+      "historical_encounter_count",
+      "historicalEncounters",
+      "historical_encounters",
+    ),
     sourceReferences: strList(field(obj, "sourceReferences", "source_references", "sources", "references")),
     missingInformation: strList(field(obj, "missingInformation", "missing_information", "gaps")),
     dataOrigin: field<string>(obj, "dataOrigin", "data_origin", "source"),
@@ -319,6 +337,7 @@ export function normalizeAgentResults(raw: unknown): AgentResult[] {
           ? JSON.stringify(outputRaw, null, 2)
           : undefined;
     const messagesRaw = field<unknown[]>(eo, "messages", "logs", "events") ?? [];
+    const handoffTo = field<string>(eo, "handoffTo", "handoff_to", "nextAgent", "next_agent", "handoff");
     return {
       id,
       name: String(field(eo, "name", "agentName", "agent_name") ?? agentDisplayName(id)),
@@ -327,12 +346,16 @@ export function normalizeAgentResults(raw: unknown): AgentResult[] {
       completedAt: field<string>(eo, "completedAt", "completed_at", "finishedAt", "finished_at"),
       durationMs: field<number>(eo, "durationMs", "duration_ms", "duration", "elapsedMs"),
       messages: messagesRaw.map((m) =>
-        typeof m === "string" ? m : String(field(asRecord(m), "message", "text", "detail") ?? JSON.stringify(m)),
+        typeof m === "string"
+          ? m
+          : String(field(asRecord(m), "message", "text", "detail") ?? JSON.stringify(m)),
       ),
       input: field<string>(eo, "input", "inputSource", "input_source", "source"),
       output: outputText,
-      handoffTo: field<string>(eo, "handoffTo", "handoff_to", "nextAgent", "next_agent", "handoff"),
-      requiresProviderReview: Boolean(field(eo, "requiresProviderReview", "requires_provider_review", "providerReviewRequired")),
+      handoffTo,
+      requiresProviderReview: Boolean(
+        field(eo, "requiresProviderReview", "requires_provider_review", "providerReviewRequired"),
+      ),
     };
   });
 }
@@ -359,14 +382,13 @@ export function extractDoctorQuestions(results: AgentResult[]): string[] {
 export function normalizePreConsultation(raw: unknown): PreConsultation {
   const obj = asRecord(raw);
   const results = normalizeAgentResults(obj);
-  const workflowStatus = field<string>(obj, "workflowStatus", "workflow_status", "status");
   return {
     workflowRunId: field<string>(obj, "workflowRunId", "workflow_run_id", "runId", "run_id"),
     range: field<TimeRange>(obj, "range"),
     executedAt: field<string>(obj, "executedAt", "executed_at", "createdAt", "created_at"),
     results,
     doctorQuestions: extractDoctorQuestions(results),
-    workflowStatus,
+    workflowStatus: field<string>(obj, "workflowStatus", "workflow_status", "status"),
   };
 }
 
@@ -383,7 +405,9 @@ export function normalizeTranscript(raw: unknown): TranscriptResult {
       text: String(field(so, "text", "content") ?? ""),
     };
   });
-  const text = String(field(obj, "text", inner, "text", "transcript") ?? segments.map((s) => s.text).join("\n"));
+  const text = String(
+    field(obj, "text", inner, "text", "transcript") ?? segments.map((s) => s.text).join("\n"),
+  );
   return {
     consultationId: String(field(obj, "consultationId", "consultation_id", "id") ?? ""),
     text,
@@ -400,11 +424,14 @@ export function normalizeComparison(raw: unknown): VisitComparison {
   return {
     comparisons: entries.map((entry) => {
       const eo = asRecord(entry);
+      const previous = field<string>(eo, "previous", "previousValue", "previous_value", "before");
+      const current = field<string>(eo, "current", "currentValue", "current_value", "after", "value");
+      const change = field<string>(eo, "change", "delta", "trend", "direction");
       return {
         field: String(field(eo, "field", "label", "name", "metric") ?? "—"),
-        previous: field<string>(eo, "previous", "previousValue", "previous_value", "before"),
-        current: field<string>(eo, "current", "currentValue", "current_value", "after", "value"),
-        change: field<string>(eo, "change", "delta", "trend", "direction"),
+        ...(previous !== undefined ? { previous } : {}),
+        ...(current !== undefined ? { current } : {}),
+        ...(change !== undefined ? { change } : {}),
       };
     }),
   };
@@ -421,13 +448,12 @@ export type SubmitTranscriptInput = {
 export type SummaryReviewInput = {
   providerId: string;
   decision: "approved" | "edited" | "rejected";
-  editedSummary?: string;
-  comments?: string;
+  editedSummary?: string | undefined;
+  comments?: string | undefined;
 };
 
 export const backendApi = {
-  patients: () =>
-    api.get<unknown[]>("/patients").then((list) => list.map(normalizePatient)),
+  patients: () => api.get<unknown[]>("/patients").then((list) => list.map(normalizePatient)),
   patient: (patientId: string) => api.get<unknown>(`/patients/${patientId}`).then(normalizePatient),
   clinicalContext: (patientId: string, range: TimeRange) =>
     api.get<unknown>(`/patients/${patientId}/clinical-context?range=${range}`).then(normalizeContext),
@@ -447,18 +473,20 @@ export const backendApi = {
     api.post<unknown>("/consultations/transcript", input).then(normalizeTranscript),
   consultation: (consultationId: string) => api.get<unknown>(`/consultations/${consultationId}`),
   summaryReview: (consultationId: string, input: SummaryReviewInput) =>
-    api
-      .post<unknown>(`/consultations/${consultationId}/summary-review`, input)
-      .then((raw) => {
-        const obj = asRecord(raw);
-        return {
-          workflowStatus: field<string>(obj, "workflowStatus", "workflow_status", "status"),
-          summary: field<string>(obj, "summary", "editedSummary", "edited_summary"),
-          consultationId: field<string>(obj, "consultationId", "consultation_id"),
-          version: field<number>(obj, "version"),
-          raw,
-        } satisfies SummaryReviewResponse;
-      }),
+    api.post<unknown>(`/consultations/${consultationId}/summary-review`, input).then((raw) => {
+      const obj = asRecord(raw);
+      const summary = field<string>(obj, "summary", "editedSummary", "edited_summary");
+      const consultationId = field<string>(obj, "consultationId", "consultation_id");
+      const workflowStatus = field<string>(obj, "workflowStatus", "workflow_status", "status");
+      const version = field<number>(obj, "version");
+      return {
+        ...(workflowStatus !== undefined ? { workflowStatus } : {}),
+        ...(summary !== undefined ? { summary } : {}),
+        ...(consultationId !== undefined ? { consultationId } : {}),
+        ...(version !== undefined ? { version } : {}),
+        raw,
+      } satisfies SummaryReviewResponse;
+    }),
   uploadSpeech: (patientId: string, encounterId: string, audio: File) => {
     const form = new FormData();
     form.append("patient_id", patientId);
